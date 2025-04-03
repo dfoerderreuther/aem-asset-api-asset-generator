@@ -11,9 +11,6 @@ import queue
 import logging
 import argparse
 from dotenv import load_dotenv
-import subprocess
-import requests
-import json
 from aem_uploader import AEMUploader
 
 # Load environment variables
@@ -40,14 +37,14 @@ class ImageProcessor:
         self.processed_count = 0
         self.processed_lock = threading.Lock()
         
-        # Load configuration
-        self.start_date = datetime.strptime(os.getenv('START_DATE', '2010-01-01'), '%Y-%m-%d')
-        self.min_tags = int(os.getenv('MIN_TAGS', '5'))
-        self.max_tags = int(os.getenv('MAX_TAGS', '10'))
-        self.font_size = int(os.getenv('FONT_SIZE', '36'))
-        self.font_name = os.getenv('FONT_NAME', 'Arial.ttf')
-        self.text_color = tuple(map(int, os.getenv('TEXT_COLOR', '255,255,255').split(',')))
-        self.text_position = tuple(map(int, os.getenv('TEXT_POSITION', '10,10').split(',')))
+        # Hardcoded configuration
+        self.start_date = datetime.strptime('2010-01-01', '%Y-%m-%d')
+        self.min_tags = 5
+        self.max_tags = 10
+        self.font_size = 36
+        self.font_name = 'Arial.ttf'
+        self.text_color = (255, 255, 255)
+        self.text_position = (10, 10)
         self.num_generations = int(os.getenv('NUM_GENERATIONS', '1000'))
         
         # Initialize AEM uploader

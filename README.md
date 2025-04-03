@@ -10,15 +10,8 @@ The `.env` file contains configuration settings for the image uploader:
 
 ```env
 # Image Processing Configuration
-NUM_THREADS=8
-NUM_GENERATIONS=1000
-START_DATE=2010-01-01
-MIN_TAGS=5
-MAX_TAGS=10
-FONT_SIZE=36
-FONT_NAME=Arial.ttf
-TEXT_COLOR=255,255,255
-TEXT_POSITION=10,10
+NUM_THREADS=12
+NUM_GENERATIONS=3000
 
 # Directory Configuration
 INPUT_DIR=img

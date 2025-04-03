@@ -5,7 +5,7 @@ local_development_token.json
 *.json
 .aio
 *.log
-out/
+out/*.jpg
 
 # Python
 __pycache__/
@@ -48,7 +48,6 @@ logs/
 log/
 
 # Directories
-out/
 temp/
 tmp/
 
