@@ -174,8 +174,8 @@ class ImageProcessor:
                 with self.processed_lock:
                     self.processed_count += 1
                     logging.info(f"Processed {self.processed_count}: {output_path.name}")
-                    logging.info(f"  Date: {random_date.strftime('%Y-%m-%d')}")
-                    logging.info(f"  Tags: {', '.join(tags)}")
+                    logging.debug(f"  Date: {random_date.strftime('%Y-%m-%d')}")
+                    logging.debug(f"  Tags: {', '.join(tags)}")
 
         except Exception as e:
             logging.error(f"Error processing {image_path}: {str(e)}")

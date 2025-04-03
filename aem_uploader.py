@@ -21,7 +21,7 @@ class AEMUploader:
                 format='%(asctime)s - %(levelname)s - %(message)s'
             )
             self.logger = logging.getLogger('AEMUploader')
-            self.logger.setLevel(logging.INFO)
+            self.logger.setLevel(logging.ERROR)
 
     def _log_curl_command(self, method: str, url: str, headers: Dict[str, str], data: Dict[str, str] = None) -> None:
         """Log the equivalent curl command for debugging."""
