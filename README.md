@@ -27,7 +27,6 @@ AEM_HOST=https://author-p1111-e2222.adobeaemcloud.com
 AEM_DESTINATION=/content/dam/gen
 ```
 
-
 ### Local Development Token (local_development_token.json)
 
 The `local_development_token.json` file contains the AEM access token for authentication. Load it from Developer Console -> Integrations -> Local token
@@ -41,6 +40,14 @@ The `local_development_token.json` file contains the AEM access token for authen
 ```
 
 This token is used to authenticate API requests to AEM. The token is automatically obtained and refreshed by the `get_token.py` script.
+
+
+## Run: 
+
+```
+pip install -r requirements.txt
+python image_processor.py  
+```
 
 ## Adobe documentation
 
