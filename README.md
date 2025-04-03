@@ -1,6 +1,10 @@
-# AEM Image Uploader
+# AEM Test Image Uploader
 
-This tool uploads images to Adobe Experience Manager (AEM) Cloud Service using the direct binary upload protocol.
+Purpose of the tool is to generate thousands of test assets in AEM Cloud Service.
+
+## Example
+
+![Example of image upload process](README_example.png)
 
 ## Configuration Files
 
