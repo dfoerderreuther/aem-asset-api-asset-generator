@@ -22,14 +22,17 @@ INPUT_DIR=img
 OUTPUT_DIR=out
 
 # Logging Configuration
-LOG_FILE=image_processing.log
+LOG_FILE=image_processing.log 
 LOG_LEVEL=INFO
 
 # AEM Configuration
-AEM_ENABLED=true
-AEM_HOST=https://author-p1111-e2222.adobeaemcloud.com
-AEM_DESTINATION=/content/dam/gen
+AEM_ENABLED=true  # Enable/disable AEM upload functionality
+AEM_HOST=https://author-p1111-e2222.adobeaemcloud.com  # AEM Cloud Service instance URL
+AEM_DESTINATION=/content/dam/gen  # Target folder in AEM for uploaded assets
+AEM_PUT_INTO_DATE_FOLDER=true  # Organize uploads into date-based subfolders
 ```
+
+
 
 ### Local Development Token (local_development_token.json)
 

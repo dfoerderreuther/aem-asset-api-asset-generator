@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import List, Dict, Any
 from get_token import get_aem_token
 import urllib.parse
+import time
 
 class AEMUploader:
     def __init__(self):
@@ -14,6 +15,7 @@ class AEMUploader:
             self.aem_host = os.getenv('AEM_HOST', 'http://localhost:4502')
             self.aem_token = get_aem_token()  # Get token from get_token.py
             self.aem_destination = os.getenv('AEM_DESTINATION', '/content/dam/images')
+            self.put_into_date_folder = os.getenv('AEM_PUT_INTO_DATE_FOLDER', 'false').lower() == 'true'
             
             # Configure logging
             logging.basicConfig(
@@ -22,6 +24,79 @@ class AEMUploader:
             )
             self.logger = logging.getLogger('AEMUploader')
             self.logger.setLevel(logging.ERROR)
+
+    def _get_destination_path(self, date: datetime) -> str:
+        """Get the destination path based on date if AEM_PUT_INTO_DATE_FOLDER is true."""
+        if self.put_into_date_folder:
+            year = date.strftime('%Y')
+            month = date.strftime('%m')
+            return f"{self.aem_destination}/{year}/{month}"
+        return self.aem_destination
+
+    def _create_folder(self, folder_path: str, max_retries: int = 3, retry_delay: int = 2) -> bool:
+        """Create a folder in AEM if it doesn't exist, with retry mechanism."""
+        for attempt in range(max_retries):
+            try:
+                headers = {
+                    'Authorization': f'Bearer {self.aem_token}',
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+                
+                # Check if folder exists
+                check_url = f'{self.aem_host}{folder_path}.json'
+                response = requests.get(check_url, headers=headers)
+                
+                if response.status_code == 200:
+                    self.logger.info(f"Folder {folder_path} exists")
+                    return True
+                
+                # Create folder
+                create_url = f'{self.aem_host}{folder_path}'
+                data = {
+                    'class': 'sling:Folder',
+                    'jcr:primaryType': 'sling:Folder'
+                }
+                
+                self.logger.info(f"Creating folder {folder_path} (attempt {attempt + 1}/{max_retries})")
+                response = requests.post(create_url, headers=headers, data=data)
+                
+                if response.status_code in [200, 201]:
+                    # Wait a bit to ensure folder is properly created
+                    time.sleep(retry_delay)
+                    self.logger.info(f"Successfully created folder {folder_path}")
+                    return True
+                else:
+                    self.logger.warning(f"Failed to create folder {folder_path} (attempt {attempt + 1}/{max_retries}): {response.text}")
+                    if attempt < max_retries - 1:
+                        time.sleep(retry_delay)
+                        continue
+                    return False
+                    
+            except Exception as e:
+                self.logger.error(f"Error creating folder {folder_path}: {str(e)}")
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+                    continue
+                return False
+
+    def _ensure_folders_exist(self, destination_path: str) -> bool:
+        """Ensure all folders in the path exist, creating them if necessary."""
+        if not self.put_into_date_folder:
+            return True
+            
+        # Split the path into components
+        path_parts = destination_path.split('/')
+        current_path = ''
+        
+        # Start from the root and create each folder in the path
+        for part in path_parts:
+            if not part:
+                continue
+            current_path += f'/{part}'
+            if not self._create_folder(current_path):
+                return False
+                
+        return True
 
     def _log_curl_command(self, method: str, url: str, headers: Dict[str, str], data: Dict[str, str] = None) -> None:
         """Log the equivalent curl command for debugging."""
@@ -49,9 +124,17 @@ class AEMUploader:
             return True
 
         try:
+            # Get the appropriate destination path based on date
+            destination_path = self._get_destination_path(date)
+            
+            # Ensure all folders in the path exist
+            if not self._ensure_folders_exist(destination_path):
+                self.logger.error(f"Failed to create required folders for {destination_path}")
+                return False
+            
             # Step 1: Initiate upload
-            self.logger.info(f"Step 1: Initiating upload for {image_path.name}")
-            upload_info = self._initiate_upload(image_path)
+            self.logger.info(f"Step 1: Initiating upload for {image_path.name} to {destination_path}")
+            upload_info = self._initiate_upload(image_path, destination_path)
             if not upload_info:
                 return False
 
@@ -68,37 +151,41 @@ class AEMUploader:
             self.logger.error(f"Failed to upload {image_path} to AEM: {str(e)}")
             return False
 
-    def _initiate_upload(self, image_path: Path) -> Dict[str, Any]:
-        """Step 1: Initiate the upload process."""
-        try:
-            headers = {
-                'Authorization': f'Bearer {self.aem_token}',
-                'Content-Type': 'application/x-www-form-urlencoded'
-            }
-            
-            data = {
-                'fileName': image_path.name,
-                'fileSize': image_path.stat().st_size
-            }
-            
-            url = f'{self.aem_host}{self.aem_destination}.initiateUpload.json'
-            self.logger.info(f"Initiating upload to {url}")
-            
-            # Log the curl command
-            #self._log_curl_command('POST', url, headers, data)
-            
-            response = requests.post(url, headers=headers, data=data)
-            
-            if response.status_code == 200:
-                self.logger.info("Upload initiation successful")
-                return response.json()
-            else:
-                self.logger.error(f"Failed to initiate upload: {response.text}")
-                return None
+    def _initiate_upload(self, image_path: Path, destination_path: str, max_retries: int = 3, retry_delay: int = 2) -> Dict[str, Any]:
+        """Step 1: Initiate the upload process with retry mechanism."""
+        for attempt in range(max_retries):
+            try:
+                headers = {
+                    'Authorization': f'Bearer {self.aem_token}',
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
                 
-        except Exception as e:
-            self.logger.error(f"Error during upload initiation: {str(e)}")
-            return None
+                data = {
+                    'fileName': image_path.name,
+                    'fileSize': image_path.stat().st_size
+                }
+                
+                url = f'{self.aem_host}{destination_path}.initiateUpload.json'
+                self.logger.info(f"Initiating upload to {url} (attempt {attempt + 1}/{max_retries})")
+                
+                response = requests.post(url, headers=headers, data=data)
+                
+                if response.status_code == 200:
+                    self.logger.info("Upload initiation successful")
+                    return response.json()
+                else:
+                    self.logger.warning(f"Failed to initiate upload (attempt {attempt + 1}/{max_retries}): {response.text}")
+                    if attempt < max_retries - 1:
+                        time.sleep(retry_delay)
+                        continue
+                    return None
+                    
+            except Exception as e:
+                self.logger.error(f"Error during upload initiation: {str(e)}")
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+                    continue
+                return None
 
     def _upload_binary(self, image_path: Path, upload_info: Dict[str, Any]) -> bool:
         """Step 2: Upload the binary to the signed URL."""
